@@ -19,7 +19,7 @@ Combine elements. Earn coins. Buy machines. Build rockets. Leave the planet.
 ## 🚀 Current Status / 当前进度
 
 - 📝 Design draft in progress / 设计草案整理中
-- 🧱 Core system: C++ + SQLite
+- 🧱 Core system: C++ 20
 - 👥 Looking for contributors / 寻找志同道合的伙伴
 
 ## 🌟 Support Us / 支持我们
