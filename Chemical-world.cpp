@@ -24,7 +24,6 @@ namespace fs = std::filesystem;
 
 //本游戏内容会非常庞大，所以存档系统必须写……
 //但是存档系统需要很多麻烦的东西，比如sqite和nlohmann json,不过可以学嘛，总之需要把代码写的灵活一点，防止根本不知道怎么改
-//对了，不知道为什么，我的代码报错了，什么abort()
 //……
 //实在不行考虑考虑……sqlite?
 
@@ -39,7 +38,7 @@ using namespace std;
 #define BLACK 0
 #define DARK_BLUE 1
 #define DARK_GREEN 2
-#define DARK_CYAN 3 //这个其实是青色的深色版本，别被名字骗了 
+#define DARK_CYAN 3 
 #define DARK_RED 4
 #define DARK_PURPLE 5
 #define DARK_YELLOW 6
@@ -163,6 +162,14 @@ public:
     }
 };
 
+//随机数系统 v1.0.2 (本贾尼你个老头子坏得很)
+
+inline int randint(int min, int max) {
+    static random_device rd;
+    static mt19937 gen(rd() + time(0));
+    uniform_int_distribution<> dis(min, max);
+    return dis(gen);
+}
 
 inline void cls() {
 	system("cls");
@@ -337,17 +344,17 @@ void setupExceptionHandler() {
 // ======================== 存档数据结构 ========================
 struct InventoryItem {
     string name;
-    int quantity;
+    long long quantity;
     string category;   // ore, ingot, chemical, fuel, part, etc.
     double value;      // 基础价值
 };
 
 struct PlayerData {
     string name;
-    int level;
+    long long level;
     long long coins;
-    int goldBars;
-    int exp;
+    long long goldBars;
+    long long exp;
     time_t createdAt;
     time_t lastPlayed;
     //我去，差点没加上inventory
@@ -356,7 +363,8 @@ struct PlayerData {
     
     vector<InventoryItem> inventory;
 
-    void addItem(const string& itemName, int quantity, const string& category="misc", double value = 0) {
+    
+    void additem(const string& itemName, long long quantity, const string& category = "misc", double value = 0) {
         for (auto& item : inventory) {
             if (item.name == itemName) {
                 item.quantity += quantity;
@@ -364,9 +372,9 @@ struct PlayerData {
             }
         }
         inventory.push_back({ itemName, quantity, category, value });
-	}
+    }
 
-    bool hasItem(const string& itemName, int quantity = 1) {
+    bool hasitem(const string& itemName, long long quantity = 1) {
         for (auto& item : inventory) {
             if (item.name == itemName && item.quantity >= quantity) {
                 return true;
@@ -374,7 +382,6 @@ struct PlayerData {
         }
         return false;
     }
-
 };
 
 
@@ -386,21 +393,23 @@ struct Machine {
     bool isRunning;
     int x, y;          // 工厂布局坐标
     map<string, int> inventory;  // 机器内部库存
-    int powerConsumption;
+    long long powerConsumption;
 };
 
 struct Factory {
     string name;
     vector<Machine> machines;
-    int totalPower;
-    int usedPower;
+    long long totalPower;
+    long long usedPower;
     map<string, int> centralStorage;  // 中央仓库
+
+    
 };
 
 struct ChemicalKnowledge {
     string formula;
     bool discovered;
-    int discoveryTime;
+    long long discoveryTime;
 };
 
 struct Quest {
@@ -414,7 +423,7 @@ struct Planet {
     string name;
     bool unlocked;
     vector<string> resources;
-    int miningRigs;           // 采矿设备数量
+    long long miningRigs;           // 采矿设备数量
     long long extractedAmount;
 };
 
@@ -451,7 +460,225 @@ private:
         cin.get();
     }
 public:
+	PlayerData player;
+	Factory factory;
+    //物品操作
+    void addItem(const string& itemName, long long quantity, const string& category = "misc", double value = 0) {
+        for (auto& item : player.inventory) {
+            if (item.name == itemName) {
+                item.quantity += quantity;
+                return;
+            }
+        }
+        player.inventory.push_back({ itemName, quantity, category, value });
+    }
 
+    bool hasItem(const string& itemName, long long quantity = 1) {
+        for (auto& item : player.inventory) {
+            if (item.name == itemName && item.quantity >= quantity) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int getItemCount(const string& itemName) {
+        for (auto& item : player.inventory) {
+            if (item.name == itemName) {
+                return item.quantity;
+            }
+        }
+        return false;
+    }
+
+    int removeItem(const string& itemName, long long quantity) {
+        for (auto& item : player.inventory) {
+            if (item.name == itemName) {
+                if (item.quantity >= quantity) {
+                    item.quantity -= quantity;
+                    typewriter("消耗了 " + itemName + " x " + to_string(quantity));
+                    return quantity;
+                }
+                else {
+                    int removed = item.quantity;
+                    item.quantity = 0;
+                    typewriter("注意! " + item.name + "的数量不足!\n" + "需要: " + to_string(quantity) + " 实际: " + to_string(removed), 40);
+                    return removed;
+                }
+            }
+        }
+        typewriter("注意! " + itemName + "不存在", 40);
+        return false;
+    }
+
+    int getItemCount(const string& itemName) {
+        for (auto& item : player.inventory) {
+            if (item.name == itemName) {
+                return item.quantity;
+            }
+        }
+        return false;
+    }
+    //硬币、金条操作
+    void addCoins(long long amount) {
+        player.coins += amount;
+        typewriter("进账" + to_string(amount) + "个" + "硬币", 40);
+    }
+
+    bool removeCoins(long long amount) {
+        if (player.coins >= amount) {
+            player.coins -= amount;
+            typewriter("支出" + to_string(amount) + "个" + "硬币", 40);
+            return true;
+
+        }
+        else {
+            typewriter("注意! 你的硬币不足!\n需要: " + to_string(amount) + " 实际: " + to_string(player.coins), 40);
+            return false;
+        }
+    }
+
+    void addGoldBars(long long amount) {
+        player.goldBars += amount;
+        typewriter("进账" + to_string(amount) + "个" + "金条", 40);
+    }
+
+    bool removeGoldBars(long long amount) {
+        if (player.goldBars >= amount) {
+            player.goldBars -= amount;
+            typewriter("支出" + to_string(amount) + "个" + "金条", 40);
+            return true;
+        }
+        else {
+            typewriter("注意! 你的金条不足!\n需要: " + to_string(amount) + " 实际: " + to_string(player.goldBars), 40);
+            return false;
+        }
+    }
+
+    //经验操作
+    void addExp(long long amount) {
+        player.exp += amount;
+        typewriter("获得了 " + to_string(amount) + " 点经验", 40);
+        //升级系统，n级别所需经验= 100 * n+当前等级*20
+        long long requiredExp = 100 * player.level + player.level * 20;
+        if (player.exp >= requiredExp) {
+            player.level++;
+            player.exp -= requiredExp;
+            typewriter("恭喜你升级了！当前等级: " + to_string(player.level), 40);
+        }
+    }
+
+    //对机器的操作，添加机器到工厂里，要写的东西稍微会多一点
+    void addMachine(const string& name, const string& type, int x = 0, int y = 0) {
+        Machine newMachine;
+        newMachine.id = name;
+        newMachine.type = type;
+        newMachine.level = 1;
+        newMachine.isRunning = false;
+        newMachine.x = x;
+        newMachine.y = y;
+        newMachine.powerConsumption = 100 * newMachine.level; // 简单的功率消耗计算
+        factory.machines.push_back(newMachine);
+        typewriter("wow!添加了 " + type + " 到工厂！", 40);
+    }
+
+    //这里要加入一个拆除机器，拆除机器会返还一部分资源，返还的资源数量取决于机器的等级和类型，尤其是珍贵的硬币，LOL
+    //但是我们先放着，等后续版本再说吧
+    //咕咕咕
+
+    
+	//这里可能会添加一些暂时没啥用处的函数
+	//解锁新配方、解锁新行星等等，反正就是一些会在后续版本里用到的函数，先放着
+    //咕咕咕
+    
+	//包含特定物品的礼包，新手专属！
+    //新手包:富集粗黄铁矿，水，硬币，锡粉,氢氧化钠，粗硫粉
+    void giveStarterPack() {
+        addItem("water", 20, "chemical", 5);
+        addItem("raw rich pyrite", 10, "ore", 10);
+        addItem("raw coal", 5, "fuel", 15);
+		addItem("tin powder", 5, "ore", 20);
+		addItem("sodium hydroxide", 5, "chemical", 25);
+		addItem("raw sulfur powder", 5, "ore", 20);
+        addCoins(100);
+        typewriter("你获得了新手礼包！里面有一些水、矿石、燃料和硬币，可以帮助你快速开始游戏！加油！", 40);
+	}
+
+    //农作物包，这里包含一些可以提取出化学物质的作物
+    //包含:土豆，玉米，甘蔗，棉花，橡胶树苗
+    void givefarmerPack() {
+		addItem("potato", 10, "crop", 5);
+		addItem("corn", 10, "crop", 5);
+		addItem("sugarcane", 10, "crop", 5);
+		addItem("cotton", 10, "crop", 5);
+		addItem("rubber tree sapling", 5, "crop", 10);
+        typewriter("你获得了农作物礼包！里面有一些玉米、土豆、甘蔗、棉花和橡胶树苗，可以帮助你提取出各种化学物质！", 40);
+	}
+
+	//工具包,包含一些可以提高生产效率的工具，品质一般，但是耐用
+	//包含:铁锹，钒钢扳手，不锈钢螺丝刀，化学单元(一种储存化学物品的东西)，石英玻璃瓶，聚四氟乙烯烧杯
+    void giveToolPack() {
+		addItem("shovel", 1, "tool", 20);
+		addItem("vanadium steel wrench", 1, "tool", 20);
+		addItem("stainless steel screwdriver", 1, "tool", 20);
+		addItem("chemical unit", 1, "tool", 20);
+		addItem("quglass bottle", 1, "tool", 20);
+		addItem("polytetrafluoroethylene beaker", 1, "tool", 20);
+		typewriter("别走！你还需呀一些工具来提高生产效率！这个工具包里有一些铁锹、扳手、螺丝刀、化学单元、玻璃瓶和烧杯，可以帮助你更高效地生产和提取化学物质！", 40);
+    }
+
+    //新手快被物品塞满了！不够！给点化学品吧
+	//包含:硫酸，盐酸，硝酸，氟，氯，甲烷
+    void giveChemistryPack() {
+		addItem("sulfuric acid", 10, "chemical", 20);
+		addItem("hydrochloric acid", 10, "chemical", 20);
+		addItem("nitric acid", 10, "chemical", 20);
+		addItem("fluorine", 10, "chemical", 20);
+		addItem("chlorine", 10, "chemical", 20);
+		addItem("methane", 10, "chemical", 20);
+        typewriter("你获得了化学品礼包！里面有一些硫酸、盐酸、硝酸、氟、氯和甲烷，可以帮助你进行各种化学实验！", 40);
+    }
+	//随机的给萌新的话，可以是一些提示、建议或者鼓励的话，增加一些人情味
+    void randomWordToNoob() {
+		int r=randint(1, 5);
+        switch (r) {
+        case 1:
+                typewriter("记住，化学世界充满了无限的可能性！勇敢地去探索吧！", 40);
+				break;
+        case 2:
+			    typewriter("不要害怕失败，每一次失败都是通往成功的必经之路！", 40);
+                break;
+        case 3:
+			    typewriter("保持好奇心，化学世界有很多有趣的东西等着你去发现！", 40);
+                break;
+		case 4:
+            typewriter("和其他玩家交流，分享你的发现和经验，化学世界是一个大家庭！", 40);
+			typewriter("加入我们的社区(等等吧)，参加活动，结交朋友，一起在化学世界中冒险！(抱歉，没有联机……)", 40);
+			break;
+        case 5:
+			typewriter("玩得开心！化学世界是为了让你享受化学的乐趣而设计的！", 40);
+        }
+    }
+    
+    //这里突然想起来一个事情，话说是不是要加一个显示库存，必须帅一点，UI必须好看一点，666666666666666
+	//感觉可以加入一个ASCII艺术的库存界面，显示玩家的物品和数量，甚至可以根据物品的类别用不同的颜色显示，增加一些视觉效果
+    void displayInventory() {
+        system("cls");
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
+        cout << "\n══════════════ 你 的 库 存 ══════════════\n";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
+        cout << "\n物品名称           数量           类别           价值\n";
+        cout << "-------------------------------------------------------------\n";
+        for (const auto& item : player.inventory) {
+            cout << item.name << string(20 - item.name.length(), ' ')
+                << item.quantity << string(15 - to_string(item.quantity).length(), ' ')
+                << item.category << string(15 - item.category.length(), ' ')
+                << item.value << "\n";
+        }
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10);
+        cout << "\n [按任意键继续]";
+		cin.get();
+    }
 
     TutorialManager() {
         tutorialActive = true;
@@ -466,7 +693,7 @@ public:
             {"power_up","工厂通电","对了，你的工厂需要电力才能运行！去商店买个电池箱，给你的机器供电吧！\n提示:电池箱可以储存电力并为机器供电！","CONNECT_POWER","","",false,nullptr},
             {"electrolysis_salt","电解食盐","wow! 你已经有了电解机了！现在试着把食盐电解成氢气、氯气,还可以……弄些氢氧化钠！\n提示:食盐的化学式是NaCl！","USE_MACHINE","盐","电解机",false,
             [](PlayerData& p,Factory& f)->bool {
-                return p.hasItem("sodium") && p.hasItem("cloride");
+                return p.hasitem("sodium") && p.hasitem("cloride");
             }},
             {"sodium_is_so_explosive","活泼的钠","你成功电解出了钠！现在试着把它放在水里看看会发生什么吧！\n提示:钠+水=氢气+氢氧化钠,你需要很多！","CHEMICAL_REACTION ","钠","水",false,nullptr}
         };
@@ -501,7 +728,7 @@ public:
             cout << "+100 coins!\n";
         }
         else if (stepId == "power_up") {
-            player.addItem("raw coal", 1, "item", 15);
+            player.additem("raw coal", 1, "item", 15);
             cout << "+1 粗煤炭\n";
         }
         else if (stepId == "electrolysis_salt") {
@@ -530,15 +757,10 @@ public:
         cout << "看来你很有自信！\n";
         delay(2000);
     }
-    //教程启动
+    //教程启动!
+    //这里写一个教程的启动
     void startTutorial() {
-        if (!tutorialActive) return;
-        for (const auto& step : steps) {
-            if (!step.isCompleted) {
-                showStep(step);
-                break;
-            }
-        }
+        //留空，到时候写，咕咕咕
     }
 };
 
@@ -635,8 +857,7 @@ public:
 
         // 初始化工厂
         factory.name = player.name + "'s Factory";
-        factory.machines = {
-};
+        factory.machines = {};
         factory.totalPower = 0;
         factory.usedPower = 0;
 
@@ -901,7 +1122,7 @@ public:
             return false;
         }
     }
-
+    
     // 列出所有存档
     void listSaves() {
         ensureSaveDirectory();
@@ -993,6 +1214,70 @@ public:
         }
 	}
 
+    void handleMachineUse(const string& machineType, const string& inputItem) {
+        if (machineType == "electrolyzer" && inputItem == "salt") {
+            if (player.hasitem("salt", 1)) {
+                player.coins += 20; // 卖掉产物赚点钱
+                player.additem("sodium", 1, "chemical", 10);
+                player.additem("chloride", 1, "chemical", 10);
+                player.additem("sodium hydroxide", 1, "chemical", 15);
+                player.coins += 20; // 卖掉产物赚点钱
+                cout << "你成功电解了食盐，获得了钠、氯和氢氧化钠！\n";
+                triggerEvent("USE_MACHINE", "salt");
+            }
+            else {
+                cout << "你没有足够的食盐！\n";
+            }
+        }
+	}
+    //这里先写个简单的占位
+	//但是以后可以根据不同的化学反应写更多的逻辑，甚至可以有一些随机事件，比如偶尔会有个小爆炸什么的
+	//LoL，钠和水的反应确实很剧烈，所以可以考虑在这个反应里加点特效什么的
+	//当然了，这些都是后续可以考虑的内容，现在先把基本的逻辑写出来
+    void handleChemicalReaction(const string& item1, const string& item2) {
+        if ((item1 == "sodium" && item2 == "water") || (item1 == "water" && item2 == "sodium")) {
+            if (player.hasitem("sodium", 1) && player.hasitem("water", 1)) {
+                player.additem("hydrogen", 1, "chemical", 5);
+                player.additem("sodium hydroxide", 1, "chemical", 15);
+                player.coins += 30; // 卖掉产物赚点钱
+                cout << "你把钠放在水里了！发生了剧烈的反应，产生了氢气和氢氧化钠！\n";
+                triggerEvent("CHEMICAL_REACTION", "sodium");
+            }
+            else {
+                cout << "你没有足够的钠或水！\n";
+            }
+        }
+    }
+
+    void interactwithmachines() {
+        cout << "你想用哪个机器？(输入机器名称，或者输入exit退出): ";
+        string machineName;
+        getline(cin, machineName);
+        if (machineName == "exit") {
+            return;
+        }
+        else if (machineName == "electrolyzer") {
+            cout << "你想放什么东西进去电解机？(输入物品名称，或者输入exit退出): ";
+            string inputItem;
+            getline(cin, inputItem);
+            if (inputItem == "exit") {
+                return;
+            }
+            handleMachineUse("electrolyzer", inputItem);
+        }else if(machineName=="化学反应釜") {
+            cout << "你想放什么东西进去化学反应釜？(输入物品名称，或者输入exit退出): ";
+            string inputItem;
+            getline(cin, inputItem);
+            if (inputItem == "exit") {
+                return;
+            }
+            handleChemicalReaction(inputItem, "water"); // 示例，实际可以根据需求调整
+        }
+        else {
+            cout << "没有这个机器！\n";
+        }
+	}
+
 };
 
 // ======================== 主菜单 ========================
@@ -1045,11 +1330,11 @@ private:
                 break;
             }
             case 2: {
-                //开始教程
-				// 这里直接进入教程，后续可以扩展成真正的游戏界面
-				TutorialManager& tutorial = saveManager.getTutorial();
-                tutorial.startTutorial();
-                break;
+				//这里可以加一个判定，教程没完事就继续，完事了就正常进入游戏
+				//但问题是现在游戏内容还没有，所以先暂时这样吧
+                cout << "\n游戏内容正在开发中，敬请期待！\n";
+                system("pause");
+				break;
             }
             case 3: {
                 string saveName;
@@ -1150,5 +1435,15 @@ int main()
         system("pause");
         return 1;
     }
-    //你真是个超人
+	//撒花，游戏成功运行了！虽然现在内容还很少，但这是一个好的开始！后续版本会逐渐添加更多的内容和功能，敬请期待！谢谢大家的支持！
+    //(ﾉ*･ω･)ﾉ
+    //(👉ﾟヮﾟ)👉👈(ﾟヮﾟ👈)
+    //放个apple别偷吃
+	//  ,--./,-.
+	// / #      \
+    //|          |
+	// \        /
+	//  `._,._,'
+	//(( •̀ ω •́ )✧)
+	return 0;
 }
