@@ -26,6 +26,7 @@ Combine elements. Earn coins. Buy machines. Build rockets. Leave the planet.
 - 💻 Programming 编写中
 - ✅ current news: Added Tutorial, but not available now, sorry  当前进度:加入了教程，但现在还是不能玩的
 - 🧱 Core system: C++ 20, nlohmann-json (thx for your help,nlohmann-json)
+- 🤜 Special Thx:  cfstream - By weigao-china , Recommend you to have a try with it! /特别鸣谢:cfstream,By weigao-china,推荐尝试一下这个.h!
 - 👥 Looking for contributors / 寻找志同道合的伙伴,your fork is super meaningful!
 
 ## 🌟 Support Us / 支持我们
