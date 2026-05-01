@@ -39,7 +39,7 @@ SOFTWARE.
 #include <sstream>
 #include <string>
 
-//"CON" is not available in macos and linux,so use /dev/tty instead -- CodeJ-40404
+//"CON" is not available in macOS and Linux,so use /dev/tty instead -- CodeJ-40404
 
 #ifdef _WIN32
     #define CONSOLE_IN "CON"

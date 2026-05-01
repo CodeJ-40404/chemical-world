@@ -1475,7 +1475,8 @@ enum category {
     machine,
     chemical,
     tool,
-    pack
+    pack,
+    ore
 };
 struct ShopItem {
     string name;
@@ -1546,7 +1547,7 @@ public:
 		//分类展示
         setcolor(GREEN);
 		cout <<"分类 |  ";
-        cout << (itemC == machine ? "机器" : itemC == chemical ? "化学品" : "工具") << " | ";
+        cout << (itemC == machine ? "机器" : itemC == chemical ? "化学品" : itemC==tool ?"工具": "矿物") << " | ";
 		cout << "名称: " << name << " | ";
 		cout << "价格: " << price << " coins\n";
 		cout << "\n描述: " << description << "\n\n";
@@ -1562,7 +1563,10 @@ public:
     string getRandomItem() {
         //大马士革钢板，不锈钢板，硝化甘油，极富集闪锌矿，贫瘠钻石矿，高十六烷值汽油,等等
         vector<string> items = { "damascus steel plate","stainless steel plate","nitroglycerin","extra rich zinc ore","barren diamond ore","high octane gasoline" };
-        int index = rand() % items.size();
+        vector<long long> price = { 200,400,300,250,800,80 };
+        long long index = rand() % items.size();
+        
+        return price[index];
         return items[index];
     }
     
@@ -1783,15 +1787,52 @@ public:
             file.close();
         }
 	}
+    //写两个预留函数，防止到时候需要
+    //上架一个包
+    void typePack(){}
 
-    //爽炸了
+    //手动上架一个
+    void typeTh(string ttpTh,category tpTh, string tpnm, string desc, long long price) {
+        typewriter(">输入你想上架的商品吧!");
+        typewriter("注意哦!商品的类型只有tool、machine、chemical、ore和pack!", 40);
+        getline(cin, ttpTh);
+        getline(cin, tpnm);
+        getline(cin, desc);
+        cin >> price;
+        bool isWrt=false;
+        while (isWrt == false) {
+            if (ttpTh == "tool" || ttpTh == "工具") {
+                tpTh = tool;
+            }
+            else if (ttpTh == "machine" || ttpTh == "机器") {
+                tpTh = machine;
+            }
+            else if (ttpTh == "chemical" || ttpTh == "化学品") {
+                tpTh == chemical;
+            }
+            else if (ttpTh == "pack" || ttpTh == "包") {
+                tpTh == pack;
+                //预留
+            }
+            else if (ttpTh == "ore" || ttpTh == "矿物") {
+                tpTh == ore;
+            }
+            else {
+                continue;
+            }
+        }
+        
+        cout << "\n\n\n";
+        addTh(tpTh, tpnm, desc, price);
+    }
+    //现在你以为啥也没得玩，到时候你就会见证奇迹!!!!!!!!!!!!!!!!!!!!!!!!!!!
 };
 
 //======指令系统=====
 //已经写代码写到崩溃了
 class Command {
 private:
-    
+    //这里预留
 };
 
 
@@ -1916,7 +1957,7 @@ public:
 };
 
 
-
+//主函数，尽可能精简!
 int main()
 {
 	SetConsoleTitle(L"化学·世界");
@@ -1925,32 +1966,7 @@ int main()
     //addTh()一个测试商品
     shop.addTh(tool, "test", "hello", 7891);
     shop.addTh(tool, "nailong", "xinbabbabalubiya", 9178);
-    typewriter(">");
     
-    string a,b,c;
-    long long d;
-    getline(cin, a);
-    getline(cin, b);
-    getline(cin, c);
-    category aa;
-    cin >> d;
-    if (a == "tool" || a == "工具") {
-        aa = tool;
-    }
-    else if (a == "machine" || a == "机器") {
-        aa = machine;
-    }
-    else if (a == "chemical" || a == "化学品") {
-        aa == chemical;
-    }
-    else if (a == "pack" || a == "包") {
-        aa == pack;
-    }
-    else {
-        return 0;
-    }
-    cout << "\n\n\n";
-    shop.addTh(aa, b, c, d);
 	//cppwelcome();
 	//cls();
 	//showlogo();
